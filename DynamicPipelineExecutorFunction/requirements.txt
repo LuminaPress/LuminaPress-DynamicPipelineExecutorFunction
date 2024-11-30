@@ -1,0 +1,54 @@
+# Web and Network
+googlesearch-python
+
+# Database and Cloud
+azure-cosmos==4.5.1
+azure-core==1.29.5
+
+# Machine Learning and AI
+numpy==1.24.3
+sentence-transformers==2.3.1
+scikit-learn==1.2.2
+torch==2.1.2
+transformers==4.36.2
+scipy==1.10.1
+
+# Natural Language Processing
+nltk==3.8.1
+sumy==0.11.0
+networkx==3.1
+
+# Web Scraping and Parsing
+beautifulsoup4==4.12.3
+pillow==10.2.0
+
+# Browser Automation
+selenium
+undetected-chromedriver==3.5.3
+
+# Text and Image Processing
+clip
+tqdm==4.66.1
+# bert-for-tc
+
+# Additional Utilities
+# mmap
+psutil==5.9.8
+
+# Development and Debugging
+# warnings
+
+# Optional: If you're using specific News API
+newsapi-python
+
+# Pinned Versions for Stability
+setuptools==69.0.3
+pip==24.3.1
+
+# Note: Always recommend creating a virtual environment before installing
+# python3 -m venv myenv
+# source myenv/bin/activate  # On Windows use: myenv\Scripts\activate
+
+# Install with: pip install -r requirements.txt
+azure-functions
+requests
