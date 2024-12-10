@@ -26,7 +26,7 @@ def fetch_news_data():
                 pass
 
             logging.info(f"Processed {len(articles)} articles.")
-            return articles
+            return articles[2:]
         else:
             logging.error(f"News API returned an error: {news_data}")
             return []

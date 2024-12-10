@@ -1,26 +1,16 @@
 import re
-import logging
-from typing import List, Optional, Union
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-import re
-import unicodedata
-import numpy as np
 from typing import List
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class ElegantTitleGenerator:
     """Generates concise and elegant titles with advanced NLP techniques."""
 
     def __init__(self):
-        """Initialize with NLTK resources and stop words."""
-        nltk.download("punkt", quiet=True)
-        nltk.download("stopwords", quiet=True)
-        self.stop_words = set(stopwords.words("english"))
+        """Initialize with necessary components."""
+        self.vectorizer = TfidfVectorizer(
+            stop_words="english"
+        )  # Use built-in stop word filtering
 
     def generate_elegant_title(self, titles: List[str], max_length: int = 80) -> str:
         """
@@ -35,11 +25,17 @@ class ElegantTitleGenerator:
         """
         # Remove duplicates and clean titles
         unique_titles = list(
-            dict.fromkeys(self._clean_title(title) for title in titles)
+            dict.fromkeys(self._clean_title(title) for title in titles if title.strip())
         )
+
+        if not unique_titles:
+            raise ValueError("No valid titles provided after cleaning.")
 
         # Extract key entities and important words
         key_entities = self._extract_key_entities(unique_titles)
+
+        if not key_entities:
+            return "No significant words found to generate a title."
 
         # Construct elegant title
         elegant_title = self._construct_title(key_entities)
@@ -71,38 +67,31 @@ class ElegantTitleGenerator:
         Returns:
             List of key entities/words
         """
-        vectorizer = TfidfVectorizer(stop_words="english")
-        tfidf_matrix = vectorizer.fit_transform(titles)
+        try:
+            tfidf_matrix = self.vectorizer.fit_transform(titles)
+            feature_names = self.vectorizer.get_feature_names_out()
+            tfidf_scores = tfidf_matrix.sum(axis=0).A1
 
-        # Get feature names (words)
-        feature_names = vectorizer.get_feature_names_out()
+            # Sort words by importance
+            sorted_indices = tfidf_scores.argsort()[::-1]
+            top_words = [feature_names[i] for i in sorted_indices[:5]]
 
-        # Sum TF-IDF scores across all titles
-        tfidf_scores = tfidf_matrix.sum(axis=0).A1
+            return top_words
+        except ValueError:
+            # Handle cases where titles are empty or contain only stop words
+            return []
 
-        # Sort words by importance
-        sorted_indices = tfidf_scores.argsort()[::-1]
-        top_words = [feature_names[i] for i in sorted_indices[:5]]
-
-        return top_words
-
-    def _construct_title(
-        self,
-        key_entities: List[str],
-    ) -> str:
+    def _construct_title(self, key_entities: List[str]) -> str:
         """
         Construct a title from key entities.
 
         Args:
             key_entities: Most important words
-            max_length: Maximum title length
 
         Returns:
             Constructed title
         """
         # Capitalize and join key entities
         title_parts = [word.capitalize() for word in key_entities]
-
-        # Create title with smart truncation
         full_title = " ".join(title_parts)
         return full_title.strip()

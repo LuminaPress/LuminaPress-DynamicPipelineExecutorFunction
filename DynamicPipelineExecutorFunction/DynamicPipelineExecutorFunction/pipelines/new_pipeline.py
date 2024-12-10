@@ -7,6 +7,15 @@ from ..helper import *
 from ..models.model_factory import ModelFactory
 from tqdm import tqdm
 from datetime import datetime
+from ..models.unbaiser import UnbiasedNewsGenerator
+from ..helper.fetching.fetch_news_data import *
+from ..text.text_cleaner import TextCleaner
+from ..text.generators.title_generator import ElegantTitleGenerator
+from ..helper.articles.article_insert import Article_Insert
+from ..models.summarizers.flow_oriented_description_summarizer import (
+    FlowOrientedDescriptionSummarizer,
+)
+from ..helper.fetching.google_search_article_links import google_search_article_links
 
 
 class ArticleProcessor:
@@ -41,16 +50,16 @@ class ArticleProcessor:
         ag = self.add_similar_articles(ag, title)
         # Summarize title and description
         logging.info(f"Summarizing content for: {title}")
-        title_generator = ElegantTitleGenerator()
-        title = self.UnbiasedNewsGenerator.generate_unbiased_news(
-            title_generator.generate_elegant_title(ag.get_titles(), max_length=70)
-        )
-
+        # title_generator = ElegantTitleGenerator()
+        # title = self.UnbiasedNewsGenerator.generate_unbiased_news(
+        #     title_generator.generate_elegant_title(ag.get_titles(), max_length=75)
+        # )
+        title = title
         # Description generation
         description_summarizer = FlowOrientedDescriptionSummarizer()
         description = self.UnbiasedNewsGenerator.generate_unbiased_news(
             description_summarizer.generate_flowing_description(
-                ag.get_descriptions(), max_sentences=3
+                ag.get_descriptions(), max_sentences=5
             )
         )
 

@@ -4,7 +4,7 @@ from tqdm import tqdm
 from urllib.parse import urlparse
 
 
-def google_search_article_links(title: str, num_results: int = 10) -> list:
+def google_search_article_links(title: str, num_results: int = 2) -> list:
     """
     Searches Google for articles similar to the given title and ensures domain diversity.
 
