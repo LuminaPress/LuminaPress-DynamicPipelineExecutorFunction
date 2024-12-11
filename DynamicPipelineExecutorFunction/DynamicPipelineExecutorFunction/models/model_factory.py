@@ -4,7 +4,7 @@ from .summarizers.flow_oriented_description_summarizer import (
 )
 from .summarizers.advanced_summarizer import advanced_summarizer
 from .tagger import generate_tags
-from .markdowner import text_to_markdown
+from .markdowner import *
 from .unbaiser import UnbiasedNewsGenerator
 
 

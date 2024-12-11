@@ -48,6 +48,7 @@ class Article_Insert:
             "liked_by": [],
             "comments": [],
             "testing": testing,
+            "isHidden": False,
         }
         try:
             # Insert the article into Cosmos DB

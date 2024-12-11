@@ -10,12 +10,13 @@ from datetime import datetime
 from ..models.unbaiser import UnbiasedNewsGenerator
 from ..helper.fetching.fetch_news_data import *
 from ..text.text_cleaner import TextCleaner
-from ..text.generators.title_generator import ElegantTitleGenerator
+from ..text.generators.title_generator import *
 from ..helper.articles.article_insert import Article_Insert
 from ..models.summarizers.flow_oriented_description_summarizer import (
     FlowOrientedDescriptionSummarizer,
 )
 from ..helper.fetching.google_search_article_links import google_search_article_links
+from ..text.generators.description_generator import *
 
 
 class ArticleProcessor:
@@ -31,7 +32,7 @@ class ArticleProcessor:
         logging.info(f"Fetched {len(articles)} articles.")
 
         # Iterate through articles with a progress bar
-        for article in tqdm(articles, desc="Processing articles", unit="article"):
+        for article in tqdm(articles[2:], desc="Processing articles", unit="article"):
             self.process_article(article)
 
         logging.info(f"Timer trigger function completed at: {datetime.utcnow()}")
@@ -40,42 +41,45 @@ class ArticleProcessor:
         """Process a single article: summarize, fetch similar articles, and insert it into the database."""
         print(article)
         tc = TextCleaner()
+        # markdown_generator = AdvancedMarkdownGenerator()
         title = article.get("title", "")
-        url = article.get("url", "No URL")
+        url = article.get("url", "")
+        image = article.get("urlToImage", "")
         logging.info(f"Started processing article: {title} ({url})")
-        ag = ArticleRepository()
+        ag = ArticleRepository(
+            initial_titles=[title],
+            initial_imgs=[article["urlToImage"]],
+            initial_descriptions=[article["description"], article["content"]],
+            initial_sources=[url],
+            initial_authors=[article["author"]],
+        )
         ag.get_article(url)
         # Adding similar articles
         logging.info(f"Fetching similar articles for: {title}")
         ag = self.add_similar_articles(ag, title)
         # Summarize title and description
         logging.info(f"Summarizing content for: {title}")
-        # title_generator = ElegantTitleGenerator()
-        # title = self.UnbiasedNewsGenerator.generate_unbiased_news(
-        #     title_generator.generate_elegant_title(ag.get_titles(), max_length=75)
-        # )
-        title = title
-        # Description generation
-        description_summarizer = FlowOrientedDescriptionSummarizer()
-        description = self.UnbiasedNewsGenerator.generate_unbiased_news(
-            description_summarizer.generate_flowing_description(
-                ag.get_descriptions(), max_sentences=5
-            )
-        )
 
+        title = title = demonstrate_condenser(ag.get_titles())
+        # Description generation
+        description = EnhancedDescriptionCleaner.clean_description(
+            "\n".join(ag.get_descriptions()), title
+        )
         # Select relevant images
         logging.info(f"Selecting images for article: {title}")
         imgs = ImageSelector().image_selector(ag.get_images(), [title, description])
+        imgs.insert(0, image) if image else None
         # Insert the article into the database
         logging.info(f"Inserting article into database: {title}")
-        Article_Insert.article_insert(
-            title,
-            description,
-            url,
-            imgs,
-            ag,
-        )
-        logging.info(f"Successfully added article: {title}")
+        if imgs != []:
+            Article_Insert.article_insert(
+                title,
+                description,
+                url,
+                imgs,
+                ag,
+            )
+            logging.info(f"Successfully added article: {title}")
 
     def add_similar_articles(self, ag, title):
         """Find and add similar articles by performing a Google search."""

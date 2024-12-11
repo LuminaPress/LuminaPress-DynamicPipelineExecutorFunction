@@ -1,97 +1,221 @@
 import re
-from typing import List
-from sklearn.feature_extraction.text import TfidfVectorizer
+import unicodedata
+from typing import List, Optional
+
+social_medias = [
+    "facebook",
+    "instagram",
+    "twitter",
+    "tiktok",
+    "linkedin",
+    "snapchat",
+    "pinterest",
+    "reddit",
+    "youtube",
+    "whatsapp",
+    "telegram",
+    "tumblr",
+    "wechat",
+    "discord",
+    "viber",
+    "skype",
+    "quora",
+    "clubhouse",
+    "flickr",
+    "periscope",
+    "line",
+    "slack",
+    "medium",
+    "vero",
+    "x",
+    "myspace",
+]
 
 
-class ElegantTitleGenerator:
-    """Generates concise and elegant titles with advanced NLP techniques."""
-
-    def __init__(self):
-        """Initialize with necessary components."""
-        self.vectorizer = TfidfVectorizer(
-            stop_words="english"
-        )  # Use built-in stop word filtering
-
-    def generate_elegant_title(self, titles: List[str], max_length: int = 80) -> str:
+class TitleCondenser:
+    def __init__(self, max_length: int = 80, style: str = "default"):
         """
-        Create an elegant, compact title with key information.
+        Initialize a universal title condenser.
 
         Args:
-            titles: List of raw titles
-            max_length: Maximum title length
-
-        Returns:
-            Refined, concise title
+            max_length (int): Maximum length of the condensed title
+            style (str): Condensing style ('default', 'punchy', 'professional')
         """
-        # Remove duplicates and clean titles
-        unique_titles = list(
-            dict.fromkeys(self._clean_title(title) for title in titles if title.strip())
-        )
+        self.max_length = max_length
+        self.style = style.lower()
 
-        if not unique_titles:
-            raise ValueError("No valid titles provided after cleaning.")
+        # Predefined stop words and fillers to remove
+        self.stop_words = {
+            "default": {
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+            },
+            "punchy": {
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+                "this",
+                "that",
+                "these",
+                "those",
+            },
+            "professional": {
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+                "s",
+                "r",
+            },
+        }
 
-        # Extract key entities and important words
-        key_entities = self._extract_key_entities(unique_titles)
+        # Domain-specific keyword boosters
+        self.domain_keywords = {
+            "news": [
+                "breaking",
+                "report",
+                "analysis",
+                "update",
+                "reveals",
+                "investigation",
+            ],
+        }
 
-        if not key_entities:
-            return "No significant words found to generate a title."
-
-        # Construct elegant title
-        elegant_title = self._construct_title(key_entities)
-
-        return elegant_title
-
-    def _clean_title(self, title: str) -> str:
+    def clean_text(self, text: str) -> str:
         """
-        Clean and normalize title.
+        Clean and normalize input text.
 
         Args:
-            title: Raw title string
+            text (str): Input text to clean
 
         Returns:
-            Cleaned title
+            str: Cleaned text
         """
-        # Remove special characters, extra spaces
-        cleaned = re.sub(r"[^a-zA-Z0-9\s]", "", title)
-        cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        return cleaned.lower()
+        # Normalize unicode and remove special characters
+        text = unicodedata.normalize("NFKD", text)
 
-    def _extract_key_entities(self, titles: List[str]) -> List[str]:
+        # Remove URLs, platform tags, extra spaces
+        text = re.sub(r"https?://\S+", "", text)
+        text = re.sub(r"[\n\t\r]", " ", text)
+        text = re.sub(r"[^\w\s\'-]", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+
+        return text
+
+    def condense_title(self, text: str, domain: Optional[str] = None) -> str:
         """
-        Extract most significant words from titles.
+        Condense a long text into a catchy, concise title.
 
         Args:
-            titles: List of cleaned titles
+            text (str): Input text to condense
+            domain (str, optional): Specific domain for optimization
 
         Returns:
-            List of key entities/words
+            str: Condensed, optimized title
         """
-        try:
-            tfidf_matrix = self.vectorizer.fit_transform(titles)
-            feature_names = self.vectorizer.get_feature_names_out()
-            tfidf_scores = tfidf_matrix.sum(axis=0).A1
+        # Clean the input text
+        cleaned_text = self.clean_text(text)
 
-            # Sort words by importance
-            sorted_indices = tfidf_scores.argsort()[::-1]
-            top_words = [feature_names[i] for i in sorted_indices[:5]]
+        # Split into words
+        words = cleaned_text.split()
 
-            return top_words
-        except ValueError:
-            # Handle cases where titles are empty or contain only stop words
-            return []
+        # Remove stop words
+        stop_words = self.stop_words.get(self.style, self.stop_words["default"])
+        meaningful_words = [word for word in words if word.lower() not in stop_words]
 
-    def _construct_title(self, key_entities: List[str]) -> str:
-        """
-        Construct a title from key entities.
+        # Domain-specific keyword boosting
+        if domain:
+            domain_boost_keywords = self.domain_keywords.get(domain, [])
+            meaningful_words = sorted(
+                meaningful_words,
+                key=lambda word: 0 if word.lower() in domain_boost_keywords else 1,
+            )
 
-        Args:
-            key_entities: Most important words
+        # Limit to max length while preserving key information
+        condensed_words = meaningful_words[:10]
 
-        Returns:
-            Constructed title
-        """
-        # Capitalize and join key entities
-        title_parts = [word.capitalize() for word in key_entities]
-        full_title = " ".join(title_parts)
-        return full_title.strip()
+        # Strategic capitalization
+        capitalized_words = [
+            (
+                word.capitalize()
+                if (index == 0 or word.lower() not in stop_words)
+                else word.lower()
+            )
+            for index, word in enumerate(condensed_words)
+        ]
+
+        # Join and truncate if necessary
+        condensed_title = " ".join(capitalized_words)
+
+        # Final truncation
+        if len(condensed_title) > self.max_length:
+            condensed_title = condensed_title[: self.max_length - 3] + "..."
+
+        return condensed_title
+
+
+# Demonstration function
+def demonstrate_condenser(
+    texts: List[str],
+    domain="news",
+    style: str = "default",
+    max_length: int = 80,
+):
+    """
+    Demonstrate the title condenser across different inputs.
+
+    Args:
+        texts (List[str]): List of texts to condense
+        domain (str, optional): Specific domain for optimization
+        style (str): Condensing style
+        max_length (int): Maximum title length
+    """
+    condenser = TitleCondenser(max_length=max_length, style=style)
+    t = []
+    for text in texts:
+        condensed_title = condenser.condense_title(text, domain)
+        t.append(condensed_title)
+    for text in t:
+        if "-" in text or any(
+            [social_media.lower() in text.lower() for social_media in social_medias]
+        ):
+            continue
+        return text
+    return None
+
+
+# news_examples = ag.get_titles()
+# demonstrate_condenser(news_examples, , )

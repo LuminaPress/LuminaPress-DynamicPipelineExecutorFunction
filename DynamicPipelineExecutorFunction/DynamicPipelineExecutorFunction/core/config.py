@@ -8,7 +8,6 @@ load_dotenv()
 # Azure Cosmos DB configuration from environment variables
 cosmos_endpoint = os.getenv("COSMOS_ENDPOINT")
 cosmos_key = os.getenv("COSMOS_KEY")
-
 # News API configuration from environment variables
 news_api_url = os.getenv("NEWS_API_URL")
 news_api_key = os.getenv("NEWS_API_KEY")

@@ -4,18 +4,13 @@ from typing import List, Optional, Union
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-import re
 import unicodedata
-import numpy as np
-from typing import List
 
 
 class EnhancedDescriptionCleaner:
     """
-    Advanced text cleaning utility to handle complex word concatenation and formatting issues.
+    Advanced text cleaning utility to handle complex word concatenation, formatting issues,
+    and title-based description refinement.
     """
 
     @staticmethod
@@ -60,12 +55,13 @@ class EnhancedDescriptionCleaner:
         return " ".join(separated_words)
 
     @staticmethod
-    def clean_description(description: str) -> str:
+    def clean_description(description: str, title: str = None) -> str:
         """
-        Comprehensive description cleaning with advanced techniques.
+        Comprehensive description cleaning with advanced techniques and title-based refinement.
 
         Args:
             description (str): Raw description text
+            title (str, optional): Title of the article to help context-based cleaning
 
         Returns:
             str: Cleaned and processed description
@@ -87,6 +83,51 @@ class EnhancedDescriptionCleaner:
 
         # Normalize whitespace
         description = re.sub(r"\s+", " ", description).strip()
+
+        # Title-based refinement
+        if title:
+            # Convert both title and description to lowercase
+            title_words = set(title.lower().split())
+            desc_words = description.lower().split()
+
+            # Calculate the percentage of title words in the description
+            title_word_overlap = sum(1 for word in desc_words if word in title_words)
+            overlap_percentage = (
+                (title_word_overlap / len(title_words)) if title_words else 0
+            )
+
+            # If title word overlap is low, try to extract most relevant sentences
+            if overlap_percentage < 0.3:
+                # Split description into sentences
+                sentences = [
+                    s.strip() for s in re.split(r"[.!?]", description) if s.strip()
+                ]
+
+                # Score sentences based on title word overlap
+                scored_sentences = []
+                for sentence in sentences:
+                    sent_words = set(sentence.lower().split())
+                    score = (
+                        len(sent_words.intersection(title_words)) / len(sent_words)
+                        if sent_words
+                        else 0
+                    )
+                    scored_sentences.append((sentence, score))
+
+                # Sort sentences by score and take top relevant sentences
+                sorted_sentences = sorted(
+                    scored_sentences, key=lambda x: x[1], reverse=True
+                )
+
+                # Take top 2-3 sentences or those with significant title overlap
+                relevant_sentences = [
+                    sent
+                    for sent, score in sorted_sentences
+                    if score > 0.2 or len(sorted_sentences) <= 3
+                ]
+
+                # Reconstruct description from most relevant sentences
+                description = ". ".join(relevant_sentences) + "."
 
         return description
 

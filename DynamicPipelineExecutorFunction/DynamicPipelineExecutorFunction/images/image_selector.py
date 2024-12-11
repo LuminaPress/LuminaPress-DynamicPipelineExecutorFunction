@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from tqdm import tqdm
-from .image_comparator import ImageTextComparator
+from .image_comparator import *
 
 
 class ImageSelector:
@@ -20,16 +20,7 @@ class ImageSelector:
         try:
             logging.info(f"Starting image selection for {len(txt_list)} texts.")
 
-            # Store matching images for each text
-            all_matched_imgs = []
-
-            # Iterate over each text with enhanced processing
-            for txt in tqdm(txt_list, desc="Processing texts", unit="text"):
-                logging.info(f"Comparing images with text: {txt}")
-                itc = ImageTextComparator()
-                new_imgs = itc.compare_images(imgs, txt)
-                all_matched_imgs.extend(new_imgs)
-                logging.info(f"Added {len(new_imgs)} images for text: {txt}")
+            all_matched_imgs = find_image_matches(imgs, "\n".join(txt_list))
 
             # More sophisticated image counting
             element_counts = Counter(all_matched_imgs)
@@ -68,7 +59,7 @@ class ImageSelector:
             # Sort images by quality and take top 5
             top_quality_imgs = sorted(
                 filtered_imgs, key=image_quality_score, reverse=True
-            )[:5]
+            )
 
             logging.info(
                 f"Selected top {len(top_quality_imgs)} highest quality images."
