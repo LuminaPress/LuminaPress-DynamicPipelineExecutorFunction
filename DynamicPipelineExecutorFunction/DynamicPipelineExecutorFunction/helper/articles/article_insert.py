@@ -5,7 +5,7 @@ from tqdm import tqdm  # For progress bars if needed
 from ...models.model_factory import (
     ModelFactory,
 )  # To create a tagging model for generating tags
-from .db_client import CosmosDBClient  # To interact with the Cosmos DB
+from ...database.db_client import CosmosDBClient  # To interact with the Cosmos DB
 
 
 db_client = CosmosDBClient()
@@ -48,6 +48,7 @@ class Article_Insert:
             "liked_by": [],
             "comments": [],
             "testing": testing,
+            "isHidden": False,
         }
         try:
             # Insert the article into Cosmos DB

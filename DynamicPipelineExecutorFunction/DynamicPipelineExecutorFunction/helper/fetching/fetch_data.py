@@ -98,7 +98,7 @@ class FetchingData:
 
     def get_images(self, soup):
         """
-        Enhanced image extraction with comprehensive filters.
+        Enhanced image extraction with comprehensive filters and Google Image search fallback.
 
         Args:
             soup (BeautifulSoup): Parsed HTML content
@@ -107,8 +107,8 @@ class FetchingData:
             list: Filtered and validated image URLs
         """
 
-        def is_valid_image(url):
-            """Basic image URL validation"""
+        def is_valid_google_image(url):
+            """Validate Google Image search results"""
             if not url:
                 return False
 
@@ -121,11 +121,15 @@ class FetchingData:
                 and any(url_lower.endswith(ext) for ext in image_extensions)
                 and "pixel" not in url_lower
                 and "analytics" not in url_lower
+                and "gstatic.com" not in url_lower  # Exclude Google placeholder images
+                and "googleusercontent.com"
+                not in url_lower  # Exclude Google-specific images
             )
 
         # Image extraction logic
         images = set()
 
+        # 1. First, try to extract images from the current page
         # Find images in img tags
         for img in soup.find_all("img", src=True):
             # Try multiple attributes for image URL
@@ -133,8 +137,62 @@ class FetchingData:
                 url = img.get(attr)
                 if url:
                     full_url = urljoin(self.url, url)
-                    if is_valid_image(full_url):
+                    if is_valid_google_image(full_url):
                         images.add(full_url)
+
+        # 2. If not enough images found, fallback to Google Image search
+        if len(images) < 10:
+            try:
+                # Perform Google Image search using the page title as query
+                title = self.get_title(soup)
+
+                # Setup chrome driver specifically for image search
+                google_driver = self._setup_driver()
+
+                try:
+                    # Construct Google Image search URL
+                    search_url = f"https://www.google.com/search?q={title.replace(' ', '+')}&tbm=isch"
+                    google_driver.get(search_url)
+
+                    # Wait for initial page load
+                    WebDriverWait(google_driver, self.timeout).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, "div[data-ri]")
+                        )
+                    )
+
+                    # Scroll to load more images
+                    self.scroll_page()
+
+                    # Extract image URLs
+                    image_elements = google_driver.find_elements(
+                        By.CSS_SELECTOR, "img[data-src]"
+                    )
+
+                    for element in image_elements[:10]:  # Limit to 10 additional images
+                        try:
+                            # Extract image URL
+                            image_url = element.get_attribute("data-src")
+
+                            # Validate and add to images set
+                            if is_valid_google_image(image_url):
+                                images.add(image_url)
+
+                                # Stop if we have enough images
+                                if len(images) >= 10:
+                                    break
+                        except Exception as e:
+                            logging.warning(f"Google Image extraction error: {e}")
+
+                except Exception as e:
+                    logging.warning(f"Google Image search failed: {e}")
+
+                finally:
+                    # Always close the driver
+                    google_driver.quit()
+
+            except Exception as e:
+                logging.error(f"Fallback image search error: {e}")
 
         return list(images)
 
